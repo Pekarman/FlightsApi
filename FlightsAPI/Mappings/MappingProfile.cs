@@ -8,7 +8,7 @@ namespace FlightsAPI.Mappings
         public MappingProfile()
         {
             CreateMap<TestFlight1, Flight>()
-                .ForMember(d => d.Source, o => o.MapFrom("TestAviaProvider1"))
+                .ForMember(d => d.Source, o => o.MapFrom(s => SourcesEnum.TestAviaProvider1))
                 .ForMember(d => d.FlightId, o => o.MapFrom(s => s.GuId))
                 .ForMember(d => d.FlightCompanyName, o => o.MapFrom(s => s.AviaCompanyName))
                 .ForMember(d => d.DepartureAirport, o => o.MapFrom(s => s.DepartureAirportName))
@@ -19,7 +19,7 @@ namespace FlightsAPI.Mappings
                 .ForMember(d => d.Price, o => o.MapFrom(s => s.TotalAmount));
 
             CreateMap<TestFlight2, Flight>()
-                .ForMember(d => d.Source, o => o.MapFrom("TestAviaProvider2"))
+                .ForMember(d => d.Source, o => o.MapFrom(s => SourcesEnum.TestAviaProvider2))
                 .ForMember(d => d.FlightId, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.FlightCompanyName, o => o.MapFrom(s => s.CompanyName))
                 .ForMember(d => d.DepartureAirport, o => o.MapFrom(s => s.DepAirport))
@@ -27,7 +27,7 @@ namespace FlightsAPI.Mappings
                 .ForMember(d => d.ArrivalAirport, o => o.MapFrom(s => s.DestAirport))
                 .ForMember(d => d.ArrivalDateTime, o => o.MapFrom(s => s.DestTime))
                 .ForMember(d => d.Transfers, o => o.MapFrom(s => s.TransfersQuantity))
-                .ForMember(d => d.Price, o => o.MapFrom(s => s.FlightCost));
+                .ForMember(d => d.Price, o => o.MapFrom(s => (double)s.FlightCost));
         }
     }
 }

@@ -28,21 +28,23 @@ namespace FlightsAPI.Controllers
         [HttpGet]
         public async Task<IEnumerable<Flight>> Get()
         {
+            this.logger.Log(LogLevel.Information, $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights.");
             var flights = new List<Flight>();
 
             try
             {
-                this.logger.Log(LogLevel.Information, $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights.");
-
                 var flights1 = await this.aviaProvider1.GetAllFlightsAsync();
                 flights.AddRange(flights1);
 
                 var flights2 = await this.aviaProvider2.GetFlightsAsync();
                 flights.AddRange(flights2);
+
+                this.logger.Log(LogLevel.Information, $"{DateTime.UtcNow.ToLongTimeString()} : Flights get success.");
             }
             catch (Exception e)
             {
                 this.logger.Log(LogLevel.Error, $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}");
+                throw;
             }
 
             return flights;

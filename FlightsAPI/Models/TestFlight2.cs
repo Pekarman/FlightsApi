@@ -8,11 +8,11 @@
 
         public string? DepAirport {  get; set; }
 
-        public string? DepTime { get; set; }
+        public DateTime? DepTime { get; set; }
 
         public string? DestAirport { get; set; }
 
-        public string? DestTime { get; set; }
+        public DateTime? DestTime { get; set; }
 
         public int TransfersQuantity { get; set; }
 
