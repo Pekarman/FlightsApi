@@ -1,5 +1,7 @@
 ﻿using FlightsAPI.Interfaces;
 using FlightsAPI.Models;
+using FlightsAPI.Models.Enums;
+using FlightsAPI.Models.Requests;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlightsAPI.Controllers
@@ -25,10 +27,19 @@ namespace FlightsAPI.Controllers
             this.aviaProvider2 = aviaProvider2;
         }
 
+        /// <summary>
+        /// Gets flights by filters and orders result (if required).
+        /// </summary>
+        /// <param name="parameters">Filters and orders.</param>
+        /// <returns>List of filtered and ordered flights.</returns>
         [HttpGet]
-        public async Task<IEnumerable<Flight>> Get()
+        public async Task<IActionResult> GetFlights([FromQuery] FlightParametersRequest parameters)
         {
-            this.logger.Log(LogLevel.Information, $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights.");
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights."
+                );
+
             var flights = new List<Flight>();
 
             try
@@ -38,21 +49,94 @@ namespace FlightsAPI.Controllers
 
                 var flights2 = await this.aviaProvider2.GetFlightsAsync();
                 flights.AddRange(flights2);
-
-                this.logger.Log(LogLevel.Information, $"{DateTime.UtcNow.ToLongTimeString()} : Flights get success.");
             }
             catch (Exception e)
             {
-                this.logger.Log(LogLevel.Error, $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}");
-                throw;
+                this.logger.Log(
+                    LogLevel.Error,
+                    $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}"
+                    );
+
+                return Problem(e.Message);
             }
 
-            return flights;
+            flights = flights.Where(f => 
+                parameters.FlightCompanyName != null
+                ? f.FlightCompanyName == parameters.FlightCompanyName
+                : parameters.DepartureAirport != null
+                ? f.DepartureAirport == parameters.DepartureAirport
+                : parameters.ArrivalAirport != null
+                ? f.ArrivalAirport == parameters.ArrivalAirport
+                : true
+                ).ToList();
+
+            flights = flights.OrderBy(f =>
+            {
+                switch (parameters.OrderBy)
+                {
+                    case "Price": return f.Price;
+                    case "Transfers": return f.Transfers;
+                    default: return 0;
+                }
+            }).ToList();
+
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Flights got successful."
+                );
+
+            return Ok(flights);
         }
 
         [HttpPost("bookFlight")]
-        public void Post([FromBody] string flightId)
+        public async Task<IActionResult> BookFlight([FromBody] BookFlightRequest request)
         {
+            if (request == null)
+            {
+                this.logger.Log(
+                    LogLevel.Error,
+                    $"{DateTime.UtcNow.ToLongTimeString()} : Request is null. Operation aborted."
+                    );
+
+                return Problem("Request is null. Operation aborted.");
+            }
+
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Trying to book flight with FlightId={request.FlightId} and Source={request.Source}."
+                );
+
+            Flight flight = new Flight();
+
+            try
+            {
+                switch (request.Source)
+                {
+                    case (int)SourcesEnum.TestAviaProvider1:
+                        flight = await this.aviaProvider1.BookFlightAsync(request.FlightId);
+                        break;
+                    case (int)SourcesEnum.TestAviaProvider2:
+                        flight = await this.aviaProvider2.BookFlightAsync(request.FlightId);
+                        break;
+                    default: break;
+                }
+            }
+            catch (Exception e)
+            {
+                this.logger.Log(
+                    LogLevel.Error,
+                    $"{DateTime.UtcNow.ToLongTimeString()} : Can't book flight. Error: {e.Message}"
+                    );
+
+                return Problem(e.Message);
+            }
+
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Flight booked successful."
+                );
+
+            return Ok(flight);
         }
     }
 }

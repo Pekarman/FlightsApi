@@ -76,9 +76,22 @@ namespace FlightsAPI.Services
         {
             var flights = this.mapper.Map<List<Flight>>(this.testFlights.ToList());
 
-            await Task.Delay(1000);
+            await Task.Delay(200);
 
             return flights;
+        }
+
+        public async Task<Flight> BookFlightAsync(string flightId)
+        {
+            var flights = this.mapper.Map<List<Flight>>(this.testFlights.ToList());
+
+            var flight = flights.Where(f => f.FlightId == flightId).FirstOrDefault();
+
+            if (flight == null) throw new Exception($"Flight with flightId={flightId} not found.");
+
+            await Task.Delay(200);
+
+            return flight;
         }
     }
 }

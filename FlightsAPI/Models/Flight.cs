@@ -3,7 +3,7 @@ namespace FlightsAPI.Models
 {
     public class Flight
     {
-        public string? Source { get; set; }
+        public int? Source { get; set; }
 
         public string? FlightId { get; set; }
 
@@ -19,7 +19,6 @@ namespace FlightsAPI.Models
 
         public int Transfers {  get; set; }
 
-        public double Price { get; set; }
-        
+        public double Price { get; set; }        
     }
 }

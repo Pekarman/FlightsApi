@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FlightsAPI.Models;
+using FlightsAPI.Models.Enums;
 
 namespace FlightsAPI.Mappings
 {
@@ -8,7 +9,7 @@ namespace FlightsAPI.Mappings
         public MappingProfile()
         {
             CreateMap<TestFlight1, Flight>()
-                .ForMember(d => d.Source, o => o.MapFrom(s => SourcesEnum.TestAviaProvider1))
+                .ForMember(d => d.Source, o => o.MapFrom(s => (int)SourcesEnum.TestAviaProvider1))
                 .ForMember(d => d.FlightId, o => o.MapFrom(s => s.GuId))
                 .ForMember(d => d.FlightCompanyName, o => o.MapFrom(s => s.AviaCompanyName))
                 .ForMember(d => d.DepartureAirport, o => o.MapFrom(s => s.DepartureAirportName))
@@ -19,7 +20,7 @@ namespace FlightsAPI.Mappings
                 .ForMember(d => d.Price, o => o.MapFrom(s => s.TotalAmount));
 
             CreateMap<TestFlight2, Flight>()
-                .ForMember(d => d.Source, o => o.MapFrom(s => SourcesEnum.TestAviaProvider2))
+                .ForMember(d => d.Source, o => o.MapFrom(s => (int)SourcesEnum.TestAviaProvider2))
                 .ForMember(d => d.FlightId, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.FlightCompanyName, o => o.MapFrom(s => s.CompanyName))
                 .ForMember(d => d.DepartureAirport, o => o.MapFrom(s => s.DepAirport))
