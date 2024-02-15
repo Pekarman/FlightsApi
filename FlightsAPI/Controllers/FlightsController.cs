@@ -125,13 +125,17 @@ namespace FlightsAPI.Controllers
                 return Problem(e.Message);
             }
 
-            flights = flights.Where(f => 
+            flights = flights.Where(f =>
                 parameters.FlightCompanyName != null
                 ? f.FlightCompanyName == parameters.FlightCompanyName
                 : parameters.DepartureAirport != null
                 ? f.DepartureAirport == parameters.DepartureAirport
                 : parameters.ArrivalAirport != null
                 ? f.ArrivalAirport == parameters.ArrivalAirport
+                : parameters.MinPrice != null
+                ? f.Price >= parameters.MinPrice
+                : parameters.MaxPrice != null
+                ? f.Price <= parameters.MaxPrice
                 : true
                 ).ToList();
 
