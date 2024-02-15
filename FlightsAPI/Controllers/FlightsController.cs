@@ -3,6 +3,7 @@ using FlightsAPI.Models;
 using FlightsAPI.Models.Enums;
 using FlightsAPI.Models.Requests;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FlightsAPI.Controllers
 {
@@ -12,19 +13,83 @@ namespace FlightsAPI.Controllers
     {
         private readonly ILogger<FlightsController> logger;
 
+        private IMemoryCache cache;
+
         private readonly ITestAviaProvider1 aviaProvider1;
         private readonly ITestAviaProvider2 aviaProvider2;
 
         public FlightsController
             (
             ILogger<FlightsController> logger,
+            IMemoryCache cache,
             ITestAviaProvider1 aviaProvider1,
             ITestAviaProvider2 aviaProvider2
             )
         {
             this.logger = logger;
+            this.cache = cache;
             this.aviaProvider1 = aviaProvider1;
             this.aviaProvider2 = aviaProvider2;
+        }
+
+        /// <summary>
+        /// Gets all flights from all sources.
+        /// </summary>
+        /// <returns>List of flights.</returns>
+        [HttpGet("getAll")]
+        public async Task<IActionResult> GetAllFlights()
+        {
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights."
+                );
+
+            List<Flight> flights;
+
+            cache.TryGetValue("AllFlights", out flights);
+
+            if (flights == null)
+            {
+                flights = new List<Flight>();
+
+                try
+                {
+                    var flights1 = await this.aviaProvider1.GetAllFlightsAsync();
+                    flights.AddRange(flights1);
+
+                    var flights2 = await this.aviaProvider2.GetFlightsAsync();
+                    flights.AddRange(flights2);
+                }
+                catch (Exception e)
+                {
+                    this.logger.Log(
+                        LogLevel.Error,
+                        $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}"
+                        );
+
+                    return Problem(e.Message);
+                }
+
+                if (flights.Count == 0)
+                {
+                    this.logger.Log(
+                        LogLevel.Error,
+                        $"{DateTime.UtcNow.ToLongTimeString()} : Flights not found."
+                        );
+
+                    return NotFound("Flights not found.");
+                }
+
+                cache.Set("AllFlights", flights, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(5)));
+
+            }
+
+            this.logger.Log(
+                LogLevel.Information,
+                $"{DateTime.UtcNow.ToLongTimeString()} : Flights got successful."
+                );
+
+            return Ok(flights);
         }
 
         /// <summary>
@@ -80,6 +145,16 @@ namespace FlightsAPI.Controllers
                 }
             }).ToList();
 
+            if (flights.Count == 0)
+            {
+                this.logger.Log(
+                    LogLevel.Error,
+                    $"{DateTime.UtcNow.ToLongTimeString()} : Flights not found."
+                    );
+
+                return NotFound("Flights not found.");
+            }
+
             this.logger.Log(
                 LogLevel.Information,
                 $"{DateTime.UtcNow.ToLongTimeString()} : Flights got successful."
@@ -88,6 +163,11 @@ namespace FlightsAPI.Controllers
             return Ok(flights);
         }
 
+        /// <summary>
+        /// Books a flight.
+        /// </summary>
+        /// <param name="request">Consists of Source and FlightId</param>
+        /// <returns>Booked Flight.</returns>
         [HttpPost("bookFlight")]
         public async Task<IActionResult> BookFlight([FromBody] BookFlightRequest request)
         {
