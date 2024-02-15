@@ -18,6 +18,8 @@ namespace FlightsAPI.Controllers
         private readonly ITestAviaProvider1 aviaProvider1;
         private readonly ITestAviaProvider2 aviaProvider2;
 
+        private CancellationTokenSource cts;
+
         public FlightsController
             (
             ILogger<FlightsController> logger,
@@ -30,6 +32,8 @@ namespace FlightsAPI.Controllers
             this.cache = cache;
             this.aviaProvider1 = aviaProvider1;
             this.aviaProvider2 = aviaProvider2;
+
+            this.cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         }
 
         /// <summary>
@@ -54,7 +58,7 @@ namespace FlightsAPI.Controllers
 
                 try
                 {
-                    var flights1 = await this.aviaProvider1.GetAllFlightsAsync();
+                    var flights1 = await this.aviaProvider1.GetAllFlightsAsync(this.cts.Token);
                     flights.AddRange(flights1);
 
                     var flights2 = await this.aviaProvider2.GetFlightsAsync();
@@ -109,7 +113,7 @@ namespace FlightsAPI.Controllers
 
             try
             {
-                var flights1 = await this.aviaProvider1.GetAllFlightsAsync();
+                var flights1 = await this.aviaProvider1.GetAllFlightsAsync(this.cts.Token);
                 flights.AddRange(flights1);
 
                 var flights2 = await this.aviaProvider2.GetFlightsAsync();

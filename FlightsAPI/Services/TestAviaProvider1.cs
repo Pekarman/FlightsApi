@@ -72,11 +72,19 @@ namespace FlightsAPI.Services
             this.mapper = mapper;
         }
 
-        public async Task<IEnumerable<Flight>> GetAllFlightsAsync()
+        public async Task<IEnumerable<Flight>> GetAllFlightsAsync(CancellationToken token)
         {
-            var flights = this.mapper.Map<List<Flight>>(this.testFlights.ToList());
+            var flights = new List<Flight>();
+            try
+            {
+                flights = this.mapper.Map<List<Flight>>(this.testFlights.ToList());
 
-            await Task.Delay(1000);
+                await Task.Delay(2000, token);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new Exception("Task cancelled due to timeout.");
+            }
 
             return flights;
         }
