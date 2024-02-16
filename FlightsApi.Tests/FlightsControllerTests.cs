@@ -1,9 +1,7 @@
 using FlightsAPI.Models;
 using FlightsAPI.Models.Requests;
-using FlightsAPI.Services;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FlightsApi.Tests
 {
