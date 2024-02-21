@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using FlightsAPI.Interfaces;
 using FlightsAPI.Models;
+using FlightsAPI.Models.Enums;
 
 namespace FlightsAPI.Services
 {
@@ -71,6 +72,8 @@ namespace FlightsAPI.Services
         {
             this.mapper = mapper;
         }
+
+        public int GetProviderName() => (int)SourcesEnum.TestAviaProvider1;
 
         public async Task<IEnumerable<Flight>> GetAllFlightsAsync(CancellationToken token)
         {

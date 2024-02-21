@@ -1,6 +1,5 @@
 ﻿using FlightsAPI.Interfaces;
 using FlightsAPI.Models;
-using FlightsAPI.Models.Enums;
 using FlightsAPI.Models.Requests;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -15,8 +14,7 @@ namespace FlightsAPI.Controllers
 
         private IMemoryCache cache;
 
-        private readonly ITestAviaProvider1 aviaProvider1;
-        private readonly ITestAviaProvider2 aviaProvider2;
+        private ITestAviaProvider[] providers;
 
         private CancellationTokenSource cts;
 
@@ -30,10 +28,10 @@ namespace FlightsAPI.Controllers
         {
             this.logger = logger;
             this.cache = cache;
-            this.aviaProvider1 = aviaProvider1;
-            this.aviaProvider2 = aviaProvider2;
 
-            this.cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            this.providers = [ aviaProvider1, aviaProvider2 ];
+
+            this.cts = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -47,6 +45,8 @@ namespace FlightsAPI.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllFlights()
         {
+            this.cts.CancelAfter(TimeSpan.FromSeconds(5));
+
             this.logger.Log(
                 LogLevel.Information,
                 $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights."
@@ -60,22 +60,30 @@ namespace FlightsAPI.Controllers
             {
                 flights = new List<Flight>();
 
-                try
+                foreach ( var provider in providers )
                 {
-                    var flights1 = await this.aviaProvider1.GetAllFlightsAsync(this.cts.Token);
-                    flights.AddRange(flights1);
+                    try
+                    {
+                        if (this.cts.Token.IsCancellationRequested)
+                        {
+                            this.logger.Log(
+                            LogLevel.Error,
+                            $"{DateTime.UtcNow.ToLongTimeString()} : Data getting from Source={provider.GetProviderName()} cancelled due timeout."
+                            );
+                            break;
+                        }
 
-                    var flights2 = await this.aviaProvider2.GetFlightsAsync();
-                    flights.AddRange(flights2);
-                }
-                catch (Exception e)
-                {
-                    this.logger.Log(
-                        LogLevel.Error,
-                        $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}"
-                        );
-
-                    return Problem(e.Message);
+                        var localServiceToken = new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token;
+                        var result = await provider.GetAllFlightsAsync(localServiceToken);
+                        flights.AddRange(result);
+                    }
+                    catch (Exception e)
+                    {
+                        this.logger.Log(
+                            LogLevel.Error,
+                            $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights from Source={provider.GetProviderName()}. Error: {e.Message}"
+                            );
+                    }
                 }
 
                 if (flights.Count == 0)
@@ -114,6 +122,8 @@ namespace FlightsAPI.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetFlights([FromQuery] FlightParametersRequest parameters)
         {
+            this.cts.CancelAfter(TimeSpan.FromSeconds(5));
+
             this.logger.Log(
                 LogLevel.Information,
                 $"{DateTime.UtcNow.ToLongTimeString()} : Trying to get flights."
@@ -121,22 +131,30 @@ namespace FlightsAPI.Controllers
 
             var flights = new List<Flight>();
 
-            try
+            foreach (var provider in providers)
             {
-                var flights1 = await this.aviaProvider1.GetAllFlightsAsync(this.cts.Token);
-                flights.AddRange(flights1);
+                try
+                {
+                    if (this.cts.Token.IsCancellationRequested)
+                    {
+                        this.logger.Log(
+                        LogLevel.Error,
+                        $"{DateTime.UtcNow.ToLongTimeString()} : Data getting from Source={provider.GetProviderName()} cancelled due timeout."
+                        );
+                        break;
+                    }
 
-                var flights2 = await this.aviaProvider2.GetFlightsAsync();
-                flights.AddRange(flights2);
-            }
-            catch (Exception e)
-            {
-                this.logger.Log(
-                    LogLevel.Error,
-                    $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights. Error: {e.Message}"
-                    );
-
-                return Problem(e.Message);
+                    var localServiceToken = new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token;
+                    var result = await provider.GetAllFlightsAsync(localServiceToken);
+                    flights.AddRange(result);
+                }
+                catch (Exception e)
+                {
+                    this.logger.Log(
+                        LogLevel.Error,
+                        $"{DateTime.UtcNow.ToLongTimeString()} : Can't get flights from Source={provider.GetProviderName()}. Error: {e.Message}"
+                        );
+                }
             }
 
             flights = flights
@@ -149,10 +167,10 @@ namespace FlightsAPI.Controllers
 
             flights = flights.OrderBy(f =>
             {
-                switch (parameters.OrderBy)
+                switch (parameters.OrderBy?.ToLower())
                 {
-                    case "Price": return f.Price;
-                    case "Transfers": return f.Transfers;
+                    case "price": return f.Price;
+                    case "transfers": return f.Transfers;
                     default: return 0;
                 }
             }).ToList();
@@ -218,15 +236,10 @@ namespace FlightsAPI.Controllers
 
             try
             {
-                switch (request.Source)
+                var provider = providers.Where(p => p.GetProviderName() == request.Source).FirstOrDefault();
+                if (provider != null)
                 {
-                    case (int)SourcesEnum.TestAviaProvider1:
-                        flight = await this.aviaProvider1.BookFlightAsync(request.FlightId);
-                        break;
-                    case (int)SourcesEnum.TestAviaProvider2:
-                        flight = await this.aviaProvider2.BookFlightAsync(request.FlightId);
-                        break;
-                    default: break;
+                    flight = await provider.BookFlightAsync(request.FlightId);
                 }
             }
             catch (Exception e)

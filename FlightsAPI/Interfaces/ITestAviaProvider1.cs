@@ -1,11 +1,6 @@
-﻿using FlightsAPI.Models;
-
-namespace FlightsAPI.Interfaces
+﻿namespace FlightsAPI.Interfaces
 {
-    public interface ITestAviaProvider1
+    public interface ITestAviaProvider1 : ITestAviaProvider
     {
-        public Task<IEnumerable<Flight>> GetAllFlightsAsync(CancellationToken cts);
-
-        public Task<Flight> BookFlightAsync(string flightId);
     }
 }
