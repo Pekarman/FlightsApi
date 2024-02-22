@@ -241,6 +241,7 @@ namespace FlightsAPI.Controllers
                 {
                     flight = await provider.BookFlightAsync(request.FlightId);
                 }
+                else throw new Exception($"No provider with Source={request.Source}");
             }
             catch (Exception e)
             {
